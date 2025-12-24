@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { FiBookOpen, FiUpload } from 'react-icons/fi';
+import { FiBookOpen, FiUpload, FiMenu, FiX } from 'react-icons/fi';
 
 // Dynamically import viewer to prevent SSR issues with PDF.js
 const FlipBookViewer = dynamic(() => import('@/components/FlipBookViewer'), { 
@@ -17,9 +17,17 @@ const FlipBookViewer = dynamic(() => import('@/components/FlipBookViewer'), {
   )
 });
 
+interface Chapter {
+  title: string;
+  page: number;
+}
+
 export default function Home() {
   const [fileUrl, setFileUrl] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -30,24 +38,55 @@ export default function Home() {
     }
   };
 
+  const handleChaptersExtracted = (extractedChapters: Chapter[]) => {
+    setChapters(extractedChapters);
+  };
+
+  const handleChapterClick = (pageNum: number) => {
+    // This will be handled by passing to FlipBookViewer
+    const event = new CustomEvent('jumpToPage', { detail: pageNum });
+    window.dispatchEvent(event);
+  };
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-stone-100 to-neutral-100 dark:from-neutral-900 dark:to-black overflow-hidden">
+      {/* Sidebar Toggle Button */}
+      {!sidebarVisible && (
+        <button
+          onClick={() => setSidebarVisible(true)}
+          className="absolute top-4 left-4 z-50 p-2 bg-stone-600 dark:bg-stone-700 text-stone-50 rounded-md shadow-lg hover:bg-stone-700 dark:hover:bg-stone-600 transition-all"
+          title="Show sidebar"
+        >
+          <FiMenu className="w-5 h-5" />
+        </button>
+      )}
+
       {/* Sidebar */}
-      <aside className="w-80 bg-stone-50/90 dark:bg-neutral-900/90 backdrop-blur-xl border-r border-stone-300 dark:border-stone-700 shadow-lg flex flex-col">
+      {sidebarVisible && (
+        <aside className="w-80 bg-stone-50/90 dark:bg-neutral-900/90 backdrop-blur-xl border-r border-stone-300 dark:border-stone-700 shadow-lg flex flex-col transition-all duration-300">
         {/* Header */}
         <div className="p-6 border-b border-stone-300 dark:border-stone-700">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 bg-stone-700 dark:bg-stone-800 rounded-md shadow-md">
-              <FiBookOpen className="w-7 h-7 text-stone-100" />
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-stone-700 dark:bg-stone-800 rounded-md shadow-md">
+                <FiBookOpen className="w-7 h-7 text-stone-100" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-serif text-stone-800 dark:text-stone-200">
+                  Reader
+                </h1>
+                <p className="text-xs font-serif text-stone-500 dark:text-stone-400">
+                  Classic book experience
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-serif text-stone-800 dark:text-stone-200">
-                Reader
-              </h1>
-              <p className="text-xs font-serif text-stone-500 dark:text-stone-400">
-                Classic book experience
-              </p>
-            </div>
+            <button
+              onClick={() => setSidebarVisible(false)}
+              className="p-2 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-md transition-colors"
+              title="Hide sidebar"
+            >
+              <FiX className="w-5 h-5 text-stone-600 dark:text-stone-400" />
+            </button>
           </div>
         </div>
 
@@ -75,6 +114,7 @@ export default function Home() {
               accept=".pdf,.epub"
               onChange={handleFileUpload}
               className="hidden"
+              ref={fileInputRef}
             />
           </label>
           
@@ -90,11 +130,13 @@ export default function Home() {
           )}
         </div>
 
-        {/* Features Info */}
+        {/* Features Info or Chapters */}
         <div className="flex-1 p-6 overflow-y-auto">
-          <h2 className="text-sm font-serif text-stone-700 dark:text-stone-300 mb-4 tracking-wide">
-            Features
-          </h2>
+          {!fileUrl ? (
+            <>
+              <h2 className="text-sm font-serif text-stone-700 dark:text-stone-300 mb-4 tracking-wide">
+                Features
+              </h2>
           <div className="space-y-3">
             <div className="p-3 bg-stone-100 dark:bg-stone-800/50 rounded-md border border-stone-200 dark:border-stone-700">
               <div className="flex items-start gap-3">
@@ -180,6 +222,40 @@ export default function Home() {
               </div>
             </div>
           </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-sm font-serif text-stone-700 dark:text-stone-300 mb-4 tracking-wide">
+                Contents
+              </h2>
+              {chapters.length > 0 ? (
+                <div className="space-y-2">
+                  {chapters.map((chapter, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleChapterClick(chapter.page)}
+                      className="w-full text-left p-3 bg-stone-100 dark:bg-stone-800/50 hover:bg-stone-200 dark:hover:bg-stone-700/50 rounded-md border border-stone-200 dark:border-stone-700 transition-colors group"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-serif text-stone-800 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-stone-100 leading-relaxed">
+                          {chapter.title}
+                        </span>
+                        <span className="text-xs font-serif text-stone-500 dark:text-stone-500 shrink-0">
+                          {chapter.page}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-xs font-serif text-stone-500 dark:text-stone-500">
+                    No chapters found in this book
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Footer */}
@@ -196,6 +272,7 @@ export default function Home() {
           </div>
         </div>
       </aside>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 flex items-center justify-center">
@@ -212,14 +289,21 @@ export default function Home() {
             <p className="text-lg font-serif text-stone-600 dark:text-stone-400 mb-8 leading-relaxed">
               Upload a PDF or EPUB file to begin your reading journey with natural page-turning animations.
             </p>
-            <div className="inline-flex items-center gap-2 px-6 py-3 bg-stone-600 dark:bg-stone-700 text-stone-50 rounded-md shadow-md hover:bg-stone-700 dark:hover:bg-stone-600 transition-colors">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-stone-600 dark:bg-stone-700 text-stone-50 rounded-md shadow-md hover:bg-stone-700 dark:hover:bg-stone-600 transition-colors cursor-pointer"
+            >
               <FiUpload className="w-5 h-5" />
               <span className="font-serif">Choose a file to begin</span>
-            </div>
+            </button>
           </div>
         ) : (
           <div className="w-full h-full">
-            <FlipBookViewer fileUrl={fileUrl} fileName={fileName} />
+            <FlipBookViewer 
+              fileUrl={fileUrl} 
+              fileName={fileName}
+              onChaptersExtracted={handleChaptersExtracted}
+            />
           </div>
         )}
       </main>

@@ -16,6 +16,7 @@ if (typeof window !== 'undefined') {
 interface FlipBookViewerProps {
   fileUrl: string;
   fileName: string;
+  onChaptersExtracted?: (chapters: Chapter[]) => void;
 }
 
 interface Chapter {
@@ -23,7 +24,7 @@ interface Chapter {
   page: number;
 }
 
-export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProps) {
+export default function FlipBookViewer({ fileUrl, fileName, onChaptersExtracted }: FlipBookViewerProps) {
   const [pages, setPages] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -39,6 +40,7 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
   const bookRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const isEpub = fileName.toLowerCase().endsWith('.epub');
 
   // Pinch to zoom
@@ -77,19 +79,42 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
       }
     };
 
+    const handleWheel = (e: WheelEvent) => {
+      // Detect pinch gesture on trackpad (ctrlKey is set for pinch on trackpads)
+      if (e.ctrlKey) {
+        e.preventDefault();
+        const delta = -e.deltaY;
+        const scaleFactor = delta > 0 ? 1.05 : 0.95;
+        const newZoom = Math.max(0.5, Math.min(2, zoom * scaleFactor));
+        setZoom(newZoom);
+      }
+    };
+
     viewer.addEventListener('touchstart', handleTouchStart, { passive: false });
     viewer.addEventListener('touchmove', handleTouchMove, { passive: false });
+    viewer.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
       viewer.removeEventListener('touchstart', handleTouchStart);
       viewer.removeEventListener('touchmove', handleTouchMove);
+      viewer.removeEventListener('wheel', handleWheel);
     };
   }, [zoom]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'h' || e.key === 'H') {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (bookRef.current) {
+          bookRef.current.pageFlip().flipPrev();
+        }
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (bookRef.current) {
+          bookRef.current.pageFlip().flipNext();
+        }
+      } else if (e.key === 'h' || e.key === 'H') {
         setUiVisible(prev => !prev);
       } else if (e.key === 'f' || e.key === 'F') {
         toggleFullscreen();
@@ -102,38 +127,90 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
       }
     };
 
+    const handleJumpToPage = (e: Event) => {
+      const customEvent = e as CustomEvent<number>;
+      if (customEvent.detail && bookRef.current) {
+        try {
+          bookRef.current.pageFlip().flip(customEvent.detail);
+        } catch (err) {
+          console.error('Error jumping to page:', err);
+        }
+      }
+    };
+
     window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    window.addEventListener('jumpToPage', handleJumpToPage);
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+      window.removeEventListener('jumpToPage', handleJumpToPage);
+    };
   }, [chapters]);
 
   useEffect(() => {
     const loadFile = async () => {
+      // Cancel any previous loading task
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller for this load
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       setLoading(true);
       setPages([]);
       setLoadingProgress(0);
+      setChapters([]);
+      
       try {
         if (isEpub) {
-          await loadEpubAsImages();
+          await loadEpubAsImages(abortController);
         } else {
-          await loadPdfAsImages();
+          await loadPdfAsImages(abortController);
         }
       } catch (error) {
-        console.error('Error loading file:', error);
+        // Don't log error if it was aborted
+        if (error instanceof Error && (error.message === 'AbortError' || error.name === 'AbortError')) {
+          console.log('Previous file load cancelled');
+          return; // Exit early, don't set loading to false
+        } else {
+          console.error('Error loading file:', error);
+        }
       } finally {
-        setLoading(false);
+        // Only set loading to false if this is still the current load
+        if (abortControllerRef.current === abortController) {
+          setLoading(false);
+        }
       }
     };
 
     if (fileUrl && fileName) {
       loadFile();
     }
+
+    // Cleanup on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fileUrl, fileName, rotation]);
 
-  const loadPdfAsImages = async () => {
+  const loadPdfAsImages = async (abortController: AbortController) => {
+    // Check if aborted before starting
+    if (abortController.signal.aborted) {
+      throw new Error('AbortError');
+    }
+
     const loadingTask = pdfjsLib.getDocument(fileUrl);
     const pdf = await loadingTask.promise;
     const numPages = pdf.numPages;
     setTotalPages(numPages);
+
+    // Check again after async operation
+    if (abortController.signal.aborted) {
+      throw new Error('AbortError');
+    }
 
     // Extract outline/bookmarks for chapter navigation
     try {
@@ -164,6 +241,7 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
           }
         }
         setChapters(extractedChapters);
+        onChaptersExtracted?.(extractedChapters);
       }
     } catch (err) {
       console.error('No outline available:', err);
@@ -173,11 +251,24 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
     const batchSize = 3; // Process 3 pages at a time
 
     for (let i = 1; i <= numPages; i += batchSize) {
+      // Check if this load has been aborted before each batch
+      if (abortController.signal.aborted) {
+        console.log('PDF load aborted at page', i);
+        throw new Error('AbortError');
+      }
+
       const batch = [];
       for (let j = i; j < Math.min(i + batchSize, numPages + 1); j++) {
         batch.push(renderPage(pdf, j));
       }
       const batchResults = await Promise.all(batch);
+      
+      // Check again after rendering batch
+      if (abortController.signal.aborted) {
+        console.log('PDF load aborted after rendering batch at page', i);
+        throw new Error('AbortError');
+      }
+      
       pageImages.push(...batchResults);
       setLoadingProgress(Math.round((i / numPages) * 100));
     }
@@ -208,11 +299,21 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
     return canvas.toDataURL('image/jpeg', 0.85);
   };
 
-  const loadEpubAsImages = async () => {
+  const loadEpubAsImages = async (abortController: AbortController) => {
+    // Check if aborted before starting
+    if (abortController.signal.aborted) {
+      throw new Error('AbortError');
+    }
+
     return new Promise<void>(async (resolve, reject) => {
       try {
         const book = ePub(fileUrl);
         await book.ready;
+
+        // Check again after book ready
+        if (abortController.signal.aborted) {
+          throw new Error('AbortError');
+        }
 
         // Extract TOC
         try {
@@ -223,6 +324,7 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
               page: index + 1
             }));
             setChapters(extractedChapters);
+            onChaptersExtracted?.(extractedChapters);
           }
         } catch (err) {
           console.error('No TOC available:', err);
@@ -249,10 +351,22 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
         const items = (spine as any).items || [];
         
         for (let idx = 0; idx < items.length; idx++) {
+          // Check if this load has been aborted before each page
+          if (abortController.signal.aborted) {
+            console.log('EPUB load aborted at page', idx);
+            throw new Error('AbortError');
+          }
+
           const item = items[idx];
           try {
             await rendition.display(item.href);
             await new Promise(resolve => setTimeout(resolve, 200));
+
+            // Check again after display
+            if (abortController.signal.aborted) {
+              console.log('EPUB load aborted after display at page', idx);
+              throw new Error('AbortError');
+            }
 
             const iframe = container.querySelector('iframe') as HTMLIFrameElement;
             if (iframe?.contentDocument?.body) {

@@ -625,7 +625,8 @@ export default function FlipBookViewer({ fileUrl, fileName, onChaptersExtracted 
           <HTMLFlipBook width={400} height={600} size="stretch" minWidth={315} maxWidth={1000} minHeight={400} maxHeight={1533}
             maxShadowOpacity={0.5} showCover={true} mobileScrollSupport={true} onFlip={onFlip} className="shadow-2xl"
             startPage={0} drawShadow={true} flippingTime={600} usePortrait={false} autoSize={true} useMouseEvents={true}
-            swipeDistance={30} showPageCorners={true} disableFlipByClick={false} ref={bookRef}>
+            swipeDistance={30} showPageCorners={true} disableFlipByClick={false} ref={bookRef}
+            style={{}} startZIndex={0} clickEventForward={true}>
             {pages.map((page, index) => (
               <div key={index} className="bg-white shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ contain: 'layout style paint' }}>
                 <div className="relative w-full h-full">

@@ -355,33 +355,33 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
   if (loading) {
     return (
       <div className={`flex items-center justify-center h-full transition-colors duration-300 ${
-        darkBackground ? 'bg-slate-900' : 'bg-amber-50'
+        darkBackground ? 'bg-neutral-900' : 'bg-stone-100'
       }`}>
         <div className="text-center">
           <div className="relative w-32 h-32 mx-auto mb-6">
             <div className={`absolute inset-0 border-8 rounded-full ${
-              darkBackground ? 'border-amber-900' : 'border-amber-200'
+              darkBackground ? 'border-stone-800' : 'border-stone-300'
             }`}></div>
-            <div className="absolute inset-0 border-8 border-transparent border-t-amber-600 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 border-8 border-transparent border-t-stone-600 rounded-full animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className={`text-lg font-bold ${
-                darkBackground ? 'text-amber-400' : 'text-amber-700'
+              <span className={`text-lg font-serif ${
+                darkBackground ? 'text-stone-400' : 'text-stone-700'
               }`}>{loadingProgress}%</span>
             </div>
           </div>
-          <p className={`text-xl font-medium mb-2 ${
-            darkBackground ? 'text-slate-300' : 'text-slate-700'
+          <p className={`text-xl font-serif mb-2 ${
+            darkBackground ? 'text-stone-300' : 'text-stone-800'
           }`}>
-            Converting {isEpub ? 'EPUB' : 'PDF'}...
+            Preparing {isEpub ? 'EPUB' : 'PDF'}...
           </p>
-          <p className={`text-sm ${
-            darkBackground ? 'text-slate-400' : 'text-slate-600'
+          <p className={`text-sm font-serif ${
+            darkBackground ? 'text-stone-500' : 'text-stone-600'
           }`}>
-            Optimizing for faster reading
+            Preparing your reading experience
           </p>
-          <div className="mt-4 w-64 mx-auto h-2 bg-slate-700 rounded-full overflow-hidden">
+          <div className="mt-4 w-64 mx-auto h-1.5 bg-stone-300 dark:bg-stone-700 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-300"
+              className="h-full bg-stone-600 dark:bg-stone-500 transition-all duration-300"
               style={{ width: `${loadingProgress}%` }}
             ></div>
           </div>
@@ -403,63 +403,63 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
       ref={containerRef} 
       className={`flex flex-col h-full transition-colors duration-500 ${
         darkBackground 
-          ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' 
-          : 'bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50'
+          ? 'bg-gradient-to-br from-neutral-900 via-stone-900 to-neutral-900' 
+          : 'bg-gradient-to-br from-stone-100 via-stone-50 to-neutral-50'
       }`}
     >
       {/* Toolbar */}
       <div className={`transform transition-all duration-500 ease-in-out ${
         uiVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 absolute pointer-events-none'
-      } bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 px-6 py-4 shadow-lg z-10`}>
+      } bg-stone-50/95 dark:bg-neutral-800/95 backdrop-blur-lg border-b border-stone-300 dark:border-stone-700 px-6 py-4 shadow-md z-10`}>
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
-            <button onClick={goToFirstPage} className="p-2.5 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all" title="First Page">
-              <FiHome className="w-5 h-5 text-slate-700 dark:text-slate-200" />
+            <button onClick={goToFirstPage} className="p-2.5 bg-stone-200 dark:bg-stone-700 rounded-md hover:bg-stone-300 dark:hover:bg-stone-600 transition-all" title="First Page">
+              <FiHome className="w-5 h-5 text-stone-700 dark:text-stone-200" />
             </button>
-            <button onClick={prevPage} disabled={currentPage === 0} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 transition-all">
+            <button onClick={prevPage} disabled={currentPage === 0} className="flex items-center gap-2 px-5 py-2.5 bg-stone-600 dark:bg-stone-700 text-stone-50 rounded-md hover:bg-stone-700 dark:hover:bg-stone-600 disabled:opacity-50 transition-all">
               <FiChevronLeft className="w-5 h-5" />
-              <span className="font-medium">Previous</span>
+              <span className="font-serif">Previous</span>
             </button>
             
             <form onSubmit={handlePageInputSubmit} className="flex items-center gap-2">
-              <span className="text-sm text-slate-600 dark:text-slate-400">Page</span>
+              <span className="text-sm font-serif text-stone-600 dark:text-stone-400">Page</span>
               <input type="number" min="1" max={totalPages} value={pageInput} onChange={(e) => setPageInput(e.target.value)}
-                className="w-16 px-2 py-1.5 text-center text-sm font-medium border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500" />
-              <span className="text-sm text-slate-600 dark:text-slate-400">of {totalPages}</span>
+                className="w-16 px-2 py-1.5 text-center text-sm font-serif border border-stone-300 dark:border-stone-600 rounded-md bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-500" />
+              <span className="text-sm font-serif text-stone-600 dark:text-stone-400">of {totalPages}</span>
             </form>
 
-            <button onClick={nextPage} disabled={currentPage >= totalPages - 1} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 transition-all">
-              <span className="font-medium">Next</span>
+            <button onClick={nextPage} disabled={currentPage >= totalPages - 1} className="flex items-center gap-2 px-5 py-2.5 bg-stone-600 dark:bg-stone-700 text-stone-50 rounded-md hover:bg-stone-700 dark:hover:bg-stone-600 disabled:opacity-50 transition-all">
+              <span className="font-serif">Next</span>
               <FiChevronRight className="w-5 h-5" />
             </button>
 
             {chapters.length > 0 && (
-              <button onClick={() => setShowChapters(!showChapters)} className="p-2.5 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all" title="Chapters (C)">
-                <FiList className="w-5 h-5 text-slate-700 dark:text-slate-200" />
+              <button onClick={() => setShowChapters(!showChapters)} className="p-2.5 bg-stone-200 dark:bg-stone-700 rounded-md hover:bg-stone-300 dark:hover:bg-stone-600 transition-all" title="Chapters (C)">
+                <FiList className="w-5 h-5 text-stone-700 dark:text-stone-200" />
               </button>
             )}
           </div>
 
           <div className="flex items-center gap-3">
-            <button onClick={handleZoomOut} className="p-2.5 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all" title="Zoom Out">
-              <FiZoomOut className="w-5 h-5 text-slate-700 dark:text-slate-200" />
+            <button onClick={handleZoomOut} className="p-2.5 bg-stone-200 dark:bg-stone-700 rounded-md hover:bg-stone-300 dark:hover:bg-stone-600 transition-all" title="Zoom Out">
+              <FiZoomOut className="w-5 h-5 text-stone-700 dark:text-stone-200" />
             </button>
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300 min-w-[60px] text-center">{Math.round(zoom * 100)}%</span>
-            <button onClick={handleZoomIn} className="p-2.5 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all" title="Zoom In">
-              <FiZoomIn className="w-5 h-5 text-slate-700 dark:text-slate-200" />
+            <span className="text-sm font-serif text-stone-700 dark:text-stone-300 min-w-[60px] text-center">{Math.round(zoom * 100)}%</span>
+            <button onClick={handleZoomIn} className="p-2.5 bg-stone-200 dark:bg-stone-700 rounded-md hover:bg-stone-300 dark:hover:bg-stone-600 transition-all" title="Zoom In">
+              <FiZoomIn className="w-5 h-5 text-stone-700 dark:text-stone-200" />
             </button>
             {!isEpub && (
-              <button onClick={handleRotate} className="p-2.5 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all" title="Rotate">
-                <FiRotateCw className="w-5 h-5 text-slate-700 dark:text-slate-200" />
+              <button onClick={handleRotate} className="p-2.5 bg-stone-200 dark:bg-stone-700 rounded-md hover:bg-stone-300 dark:hover:bg-stone-600 transition-all" title="Rotate">
+                <FiRotateCw className="w-5 h-5 text-stone-700 dark:text-stone-200" />
               </button>
             )}
-            <button onClick={() => setDarkBackground(!darkBackground)} className="p-2.5 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all" title="Toggle Theme (T)">
-              {darkBackground ? <FiSun className="w-5 h-5 text-slate-700 dark:text-slate-200" /> : <FiMoon className="w-5 h-5 text-slate-700 dark:text-slate-200" />}
+            <button onClick={() => setDarkBackground(!darkBackground)} className="p-2.5 bg-stone-200 dark:bg-stone-700 rounded-md hover:bg-stone-300 dark:hover:bg-stone-600 transition-all" title="Toggle Theme (T)">
+              {darkBackground ? <FiSun className="w-5 h-5 text-stone-700 dark:text-stone-200" /> : <FiMoon className="w-5 h-5 text-stone-700 dark:text-stone-200" />}
             </button>
-            <button onClick={toggleFullscreen} className="p-2.5 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all" title="Fullscreen (F)">
-              <FiMaximize2 className="w-5 h-5 text-slate-700 dark:text-slate-200" />
+            <button onClick={toggleFullscreen} className="p-2.5 bg-stone-200 dark:bg-stone-700 rounded-md hover:bg-stone-300 dark:hover:bg-stone-600 transition-all" title="Fullscreen (F)">
+              <FiMaximize2 className="w-5 h-5 text-stone-700 dark:text-stone-200" />
             </button>
-            <button onClick={() => setUiVisible(false)} className="p-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all" title="Hide UI (H)">
+            <button onClick={() => setUiVisible(false)} className="p-2.5 bg-stone-600 dark:bg-stone-700 text-stone-50 rounded-md hover:bg-stone-700 dark:hover:bg-stone-600 transition-all" title="Hide UI (H)">
               <FiEyeOff className="w-5 h-5" />
             </button>
           </div>
@@ -468,17 +468,17 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
 
       {/* Chapter Navigation */}
       {showChapters && uiVisible && chapters.length > 0 && (
-        <div className="absolute top-20 right-4 z-20 w-80 max-h-96 bg-white dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-fadeIn">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800 dark:text-slate-200">Chapters</h3>
-            <button onClick={() => setShowChapters(false)} className="text-slate-500 hover:text-slate-700">✕</button>
+        <div className="absolute top-20 right-4 z-20 w-80 max-h-96 bg-stone-50 dark:bg-neutral-800 rounded-md shadow-xl border border-stone-300 dark:border-stone-700 overflow-hidden animate-fadeIn">
+          <div className="p-4 border-b border-stone-300 dark:border-stone-700 flex items-center justify-between">
+            <h3 className="font-serif text-lg text-stone-800 dark:text-stone-200">Contents</h3>
+            <button onClick={() => setShowChapters(false)} className="text-stone-500 hover:text-stone-700 text-xl">×</button>
           </div>
           <div className="overflow-y-auto max-h-80">
             {chapters.map((chapter, index) => (
               <button key={index} onClick={() => { goToPage(chapter.page); setShowChapters(false); }}
-                className="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0">
-                <div className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{chapter.title}</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Page {chapter.page}</div>
+                className="w-full px-4 py-3 text-left hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors border-b border-stone-200 dark:border-stone-700 last:border-0">
+                <div className="text-sm font-serif text-stone-700 dark:text-stone-300 truncate">{chapter.title}</div>
+                <div className="text-xs font-serif text-stone-500 dark:text-stone-400 mt-1">Page {chapter.page}</div>
               </button>
             ))}
           </div>
@@ -497,7 +497,7 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
                 <div className="relative w-full h-full">
                   <img src={page} alt={`Page ${index + 1}`} className="w-full h-full object-contain" draggable={false} />
                   <div className={`absolute bottom-4 left-0 right-0 flex justify-center transition-opacity duration-300 ${uiVisible ? 'opacity-100' : 'opacity-0'}`}>
-                    <div className="px-3 py-1 bg-slate-800/80 text-white text-xs font-medium rounded-full backdrop-blur-sm">{index + 1}</div>
+                    <div className="px-3 py-1 bg-stone-700/70 text-stone-100 text-xs font-serif rounded-sm backdrop-blur-sm">{index + 1}</div>
                   </div>
                 </div>
               </div>
@@ -509,8 +509,8 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
       {/* Tips Footer */}
       <div className={`transform transition-all duration-500 ease-in-out ${
         uiVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 absolute bottom-0 pointer-events-none'
-      } w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-700 px-6 py-3`}>
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-6 text-xs text-slate-600 dark:text-slate-400 flex-wrap">
+      } w-full bg-stone-50/90 dark:bg-neutral-800/90 backdrop-blur-lg border-t border-stone-300 dark:border-stone-700 px-6 py-3`}>
+        <div className="max-w-7xl mx-auto flex items-center justify-center gap-6 text-xs font-serif text-stone-600 dark:text-stone-400 flex-wrap">
           <span>💡 Click corners</span>
           <span>⌨️ Arrow keys</span>
           <span>🤏 Pinch zoom</span>
@@ -524,7 +524,7 @@ export default function FlipBookViewer({ fileUrl, fileName }: FlipBookViewerProp
       {/* Show UI Button */}
       {!uiVisible && (
         <button onClick={() => setUiVisible(true)}
-          className="absolute top-4 right-4 z-30 p-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all animate-pulse" title="Show UI (H)">
+          className="absolute top-4 right-4 z-30 p-3 bg-stone-600 dark:bg-stone-700 text-stone-50 rounded-full shadow-xl hover:bg-stone-700 dark:hover:bg-stone-600 transition-all animate-pulse" title="Show UI (H)">
           <FiEye className="w-6 h-6" />
         </button>
       )}

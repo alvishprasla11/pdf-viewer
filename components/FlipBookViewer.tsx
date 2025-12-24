@@ -41,6 +41,7 @@ export default function FlipBookViewer({ fileUrl, fileName, onChaptersExtracted 
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isEpub = fileName.toLowerCase().endsWith('.epub');
 
   // Pinch to zoom
@@ -74,7 +75,7 @@ export default function FlipBookViewer({ fileUrl, fileName, onChaptersExtracted 
           touch2.clientY - touch1.clientY
         );
         const scale = currentDistance / initialDistance;
-        const newZoom = Math.max(0.5, Math.min(2, initialZoom * scale));
+        const newZoom = Math.max(0.5, Math.min(5, initialZoom * scale));
         setZoom(newZoom);
       }
     };
@@ -83,10 +84,20 @@ export default function FlipBookViewer({ fileUrl, fileName, onChaptersExtracted 
       // Detect pinch gesture on trackpad (ctrlKey is set for pinch on trackpads)
       if (e.ctrlKey) {
         e.preventDefault();
+        e.stopPropagation();
+        
+        // Debounce zoom updates
+        if (zoomTimeoutRef.current) {
+          clearTimeout(zoomTimeoutRef.current);
+        }
+        
         const delta = -e.deltaY;
-        const scaleFactor = delta > 0 ? 1.05 : 0.95;
-        const newZoom = Math.max(0.5, Math.min(2, zoom * scaleFactor));
-        setZoom(newZoom);
+        const scaleFactor = delta > 0 ? 1.1 : 0.9;
+        const newZoom = Math.max(0.5, Math.min(5, zoom * scaleFactor));
+        
+        zoomTimeoutRef.current = setTimeout(() => {
+          setZoom(newZoom);
+        }, 10);
       }
     };
 
@@ -278,12 +289,13 @@ export default function FlipBookViewer({ fileUrl, fileName, onChaptersExtracted 
 
   const renderPage = async (pdf: any, pageNum: number): Promise<string> => {
     const page = await pdf.getPage(pageNum);
-    // Reduced scale for faster rendering
-    const viewport = page.getViewport({ scale: 2, rotation });
+    // Reduced scale to 1.5 for better performance
+    const viewport = page.getViewport({ scale: 1.5, rotation });
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d', {
       alpha: false,
-      desynchronized: true
+      desynchronized: true,
+      willReadFrequently: false
     });
 
     canvas.height = viewport.height;
@@ -295,8 +307,14 @@ export default function FlipBookViewer({ fileUrl, fileName, onChaptersExtracted 
       canvas: canvas,
     }).promise;
 
-    // Use JPEG for smaller size and faster conversion
-    return canvas.toDataURL('image/jpeg', 0.85);
+    // Use JPEG at 75% quality for better memory efficiency
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+    
+    // Clear canvas to free memory
+    canvas.width = 0;
+    canvas.height = 0;
+    
+    return dataUrl;
   };
 
   const loadEpubAsImages = async (abortController: AbortController) => {
@@ -454,7 +472,7 @@ export default function FlipBookViewer({ fileUrl, fileName, onChaptersExtracted 
     setPageInput((e.data + 1).toString());
   };
 
-  const handleZoomIn = () => setZoom(Math.min(zoom + 0.1, 2));
+  const handleZoomIn = () => setZoom(Math.min(zoom + 0.1, 5));
   const handleZoomOut = () => setZoom(Math.max(zoom - 0.1, 0.5));
   const handleRotate = () => setRotation((rotation + 90) % 360);
 
@@ -524,15 +542,14 @@ export default function FlipBookViewer({ fileUrl, fileName, onChaptersExtracted 
       {/* Toolbar */}
       <div className={`transform transition-all duration-500 ease-in-out ${
         uiVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 absolute pointer-events-none'
-      } bg-stone-50/95 dark:bg-neutral-800/95 backdrop-blur-lg border-b border-stone-300 dark:border-stone-700 px-6 py-4 shadow-md z-10`}>
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
+      } bg-stone-50/95 dark:bg-neutral-800/95 backdrop-blur-lg border-b border-stone-300 dark:border-stone-700 py-4 shadow-md z-10`}>
+        <div className="flex items-center justify-between max-w-7xl mx-auto pl-24 pr-6">
           <div className="flex items-center gap-3">
             <button onClick={goToFirstPage} className="p-2.5 bg-stone-200 dark:bg-stone-700 rounded-md hover:bg-stone-300 dark:hover:bg-stone-600 transition-all" title="First Page">
               <FiHome className="w-5 h-5 text-stone-700 dark:text-stone-200" />
             </button>
-            <button onClick={prevPage} disabled={currentPage === 0} className="flex items-center gap-2 px-5 py-2.5 bg-stone-600 dark:bg-stone-700 text-stone-50 rounded-md hover:bg-stone-700 dark:hover:bg-stone-600 disabled:opacity-50 transition-all">
+            <button onClick={prevPage} disabled={currentPage === 0} className="p-2.5 bg-stone-600 dark:bg-stone-700 text-stone-50 rounded-md hover:bg-stone-700 dark:hover:bg-stone-600 disabled:opacity-50 transition-all" title="Previous Page">
               <FiChevronLeft className="w-5 h-5" />
-              <span className="font-serif">Previous</span>
             </button>
             
             <form onSubmit={handlePageInputSubmit} className="flex items-center gap-2">
@@ -542,8 +559,7 @@ export default function FlipBookViewer({ fileUrl, fileName, onChaptersExtracted 
               <span className="text-sm font-serif text-stone-600 dark:text-stone-400">of {totalPages}</span>
             </form>
 
-            <button onClick={nextPage} disabled={currentPage >= totalPages - 1} className="flex items-center gap-2 px-5 py-2.5 bg-stone-600 dark:bg-stone-700 text-stone-50 rounded-md hover:bg-stone-700 dark:hover:bg-stone-600 disabled:opacity-50 transition-all">
-              <span className="font-serif">Next</span>
+            <button onClick={nextPage} disabled={currentPage >= totalPages - 1} className="p-2.5 bg-stone-600 dark:bg-stone-700 text-stone-50 rounded-md hover:bg-stone-700 dark:hover:bg-stone-600 disabled:opacity-50 transition-all" title="Next Page">
               <FiChevronRight className="w-5 h-5" />
             </button>
 
@@ -600,16 +616,28 @@ export default function FlipBookViewer({ fileUrl, fileName, onChaptersExtracted 
       )}
 
       {/* FlipBook */}
-      <div ref={viewerRef} className="flex-1 overflow-hidden p-8 flex items-center justify-center touch-none">
-        <div className="relative transition-transform duration-300 ease-out" style={{ transform: `scale(${zoom})` }}>
+      <div ref={viewerRef} className="flex-1 overflow-hidden p-8 flex items-center justify-center touch-none" style={{ contain: 'layout style paint' }}>
+        <div className="relative max-w-full max-h-full" style={{ 
+          transform: `scale(${zoom})`,
+          willChange: zoom !== 1 ? 'transform' : 'auto',
+          transformOrigin: 'center center'
+        }}>
           <HTMLFlipBook width={400} height={600} size="stretch" minWidth={315} maxWidth={1000} minHeight={400} maxHeight={1533}
             maxShadowOpacity={0.5} showCover={true} mobileScrollSupport={true} onFlip={onFlip} className="shadow-2xl"
             startPage={0} drawShadow={true} flippingTime={600} usePortrait={false} autoSize={true} useMouseEvents={true}
             swipeDistance={30} showPageCorners={true} disableFlipByClick={false} ref={bookRef}>
             {pages.map((page, index) => (
-              <div key={index} className="bg-white shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div key={index} className="bg-white shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ contain: 'layout style paint' }}>
                 <div className="relative w-full h-full">
-                  <img src={page} alt={`Page ${index + 1}`} className="w-full h-full object-contain" draggable={false} />
+                  <img 
+                    src={page} 
+                    alt={`Page ${index + 1}`} 
+                    className="w-full h-full object-contain" 
+                    draggable={false}
+                    loading="lazy"
+                    decoding="async"
+                    style={{ contentVisibility: 'auto' }}
+                  />
                   <div className={`absolute bottom-4 left-0 right-0 flex justify-center transition-opacity duration-300 ${uiVisible ? 'opacity-100' : 'opacity-0'}`}>
                     <div className="px-3 py-1 bg-stone-700/70 text-stone-100 text-xs font-serif rounded-sm backdrop-blur-sm">{index + 1}</div>
                   </div>

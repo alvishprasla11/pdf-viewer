@@ -19,7 +19,7 @@ function createWindow() {
       allowRunningInsecureContent: false,
     },
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 10, y: 10 },
+    trafficLightPosition: { x: 20, y: 24 },
   });
 
   // Load the app
